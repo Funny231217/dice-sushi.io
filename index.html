@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dice Sushi</title>
+
+<style>
+body {
+    font-family: system-ui, sans-serif;
+    background: #f4f6f8;
+    text-align: center;
+    padding: 20px;
+}
+
+.box {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    max-width: 420px;
+    margin: auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+button {
+    margin: 5px;
+    padding: 10px 18px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+}
+
+.roll { background: #4CAF50; color: white; }
+.undo { background: #FF9800; color: white; }
+.reset { background: #F44336; color: white; }
+
+#menu { font-weight: bold; }
+
+#historyList {
+    list-style: none;
+    padding: 0;
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#historyList li {
+    background: #ffffff;
+    margin: 5px auto;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+    <h1>🎲 Dice Sushi</h1>
+
+    <p id="dice">出目：-</p>
+    <p id="menu">メニュー：-</p>
+    <p id="price">料金：-</p>
+    <p id="total">合計：0円</p>
+
+    <button class="roll" onclick="rollDice()">振る</button>
+    <button class="undo" onclick="undo()">Undo</button>
+    <button class="reset" onclick="resetAll()">Reset</button>
+
+    <h2>📜 履歴</h2>
+    <ul id="historyList"></ul>
+</div>
+
+<script>
+const menus = {
+    1: ["好きなメニュー", 0],
+    2: ["好きな握り", 0],
+    3: ["好きな軍艦", 0],
+    4: ["好きなサイド", 0],
+    5: ["好きなシナモロール♡", 0],
+
+    // 6～10
+    6: ["チーズケーキ", 115],
+    7: ["ねぎまぐろ", 115],
+    8: ["ぶり醤油麹", 115],
+    9: ["大盛り貝柱", 115],
+    10: ["ゆず塩かつおたたき", 115],
+
+    // 11～15
+    11: ["ヨーグルトムースゼリー（ぶどう風味）", 115],
+    12: ["サーモン", 115],
+    13: ["えび", 115],
+    14: ["生えび", 115],
+    15: ["活〆パンガシウス", 115],
+
+    // 16～20
+    16: ["天然だしうどん", 115],
+    17: ["ゆずかれい", 115],
+    18: ["牛すき焼き風", 115],
+    19: ["まぐろアボカドチーズ", 115],
+    20: ["サーモンアボカドチーズ", 115],
+
+    // 21～25
+    21: ["純赤だし", 115],
+    22: ["いか", 115],
+    23: ["あなご", 115],
+    24: ["たまご焼き", 115],
+    25: ["極旨カニカマ", 115],
+
+    // 26～30
+    26: ["プレミアアイスラテ", 115],
+    27: ["旨だれ牛カルビ", 115],
+    28: ["ハンバーグ", 115],
+    29: ["熟成まぐろ", 115],
+    30: ["真いわし", 115],
+
+    // 31～35
+    31: ["プレミアホットラテ", 115],
+    32: ["肉厚とろ〆さば", 115],
+    33: ["ビントロ", 115],
+    34: ["はまち", 115],
+    35: ["オニオンサーモン", 115],
+
+    // 36～40
+    36: ["プレミアアイス珈琲", 115],
+    37: ["えびアボカド", 115],
+    38: ["いか天にぎり", 115],
+    39: ["あぶりえびチーズ", 115],
+    40: ["あぶりチーズ豚カルビ", 115],
+
+    // 41～45
+    41: ["プレミアホット珈琲", 115],
+    42: ["えんがわ（かれい）", 115],
+    43: ["あじ", 115],
+    44: ["焼きはらす", 115],
+    45: ["つぶ貝", 115],
+
+    // 46～50
+    46: ["乳酸菌ウォーター", 115],
+    47: ["本格ハンバーグ", 115],
+    48: ["熟成ふぐ（一貫）", 115],
+    49: ["国産寒ひらめ（一貫）", 115],
+    50: ["海鮮ユッケ", 115],
+
+    // 51～55
+    51: ["宇治抹茶入り緑茶", 115],
+    52: ["たらマヨ", 115],
+    53: ["まぐたく", 115],
+    54: ["かずのこ軍艦", 115],
+    55: ["いかおくら", 115],
+
+    // 56～60
+    56: ["りんご", 115],
+    57: ["ねぎまぐろ軍艦", 115],
+    58: ["コーン", 115],
+    59: ["照り焼きチキン", 115],
+    60: ["えびマヨ", 115],
+
+    // 61～65
+    61: ["オレンジ", 115],
+    62: ["サラダ", 115],
+    63: ["ツナサラダ", 115],
+    64: ["シーフードサラダ", 115],
+    65: ["きゅうり巻", 115],
+
+    // 66～70
+    66: ["めろんサイダー", 115],
+    67: ["かんぴょう巻", 115],
+    68: ["いなり", 115],
+    69: ["甘えびマヨ", 115],
+    70: ["まぐろユッケ", 115],
+
+    // 71～75
+    71: ["あまざけ風サイダー", 115],
+    72: ["うな玉", 115],
+    73: ["鴨のローストトリュフソース", 115],
+    74: ["チキンアドボ", 115],
+    75: ["カリフラワーナゲット", 115],
+
+    // 76～80
+    76: ["ぶどうサイダー", 115],
+    77: ["ミニころチキン", 115],
+    78: ["オニオンリング", 115],
+    79: ["とうもろこしのかき揚げ", 115],
+    80: ["小海老唐揚げ", 115],
+
+    // 81～85
+    81: ["【無添】コーラ", 115],
+    82: ["いか軟骨唐揚げ", 115],
+    83: ["くら出汁", 115],
+    84: ["ウムアリ", 115],
+    85: ["マダガスカルバニラパンケーキ", 115],
+
+    // 86～90
+    86: ["大学芋スティック", 115],
+    87: ["京わらびもち", 115],
+    88: ["くらだんご みたらし", 115],
+    89: ["プリンタルト", 115],
+    90: ["感動のぷりん", 115],
+
+    // 91～95
+    91: ["濃厚バニラアイス", 115],
+    92: ["チョコアイス", 115],
+    93: ["巨峰シャーベット", 115],
+    94: ["特製茶碗蒸し", 115],
+    95: ["至福のホッとぜんざい", 115],
+
+    // ファンブル
+    96: ["3皿スプーンでお食事", 0],
+    97: ["右隣に人と乾杯（引いた人が奢り）", 0],
+    98: ["芳醇宇治抹茶パフェ", 530],
+    99: ["酒", 0],
+    100: ["寿司ネタでキャラデザ", 0]
+};
+
+let history = [];
+let totalPrice = 0;
+
+function rollDice() {
+    const dice = Math.floor(Math.random() * 100) + 1;
+    const item = menus[dice] || ["通常メニュー",115];
+
+    totalPrice += item[1];
+    history.push({ dice, menu: item[0], price: item[1] });
+
+    updateDisplay(dice, item[0], item[1]);
+    updateTotal();
+    renderHistory();
+}
+
+function undo() {
+    if (history.length === 0) return;
+
+    const last = history.pop();
+    totalPrice -= last.price;
+
+    if (history.length > 0) {
+        const prev = history[history.length - 1];
+        updateDisplay(prev.dice, prev.menu, prev.price);
+    } else {
+        clearDisplay();
+    }
+
+    updateTotal();
+    renderHistory();
+}
+
+function resetAll() {
+    history = [];
+    totalPrice = 0;
+    clearDisplay();
+    updateTotal();
+    renderHistory();
+}
+
+function updateDisplay(dice, menu, price) {
+    document.getElementById("dice").textContent = `出目：${dice}`;
+    document.getElementById("menu").textContent = `メニュー：${menu}`;
+    document.getElementById("price").textContent = `料金：${price}円`;
+
+    const menuEl = document.getElementById("menu");
+    if  (dice <= 5) {
+        menuEl.style.color = "blue";
+    } else if (dice >= 96) {
+        menuEl.style.color = "red";
+    } else {
+        menuEl.style.color = "black";
+    }
+}
+
+function clearDisplay() {
+    document.getElementById("dice").textContent = "出目：-";
+    document.getElementById("menu").textContent = "メニュー：-";
+    document.getElementById("price").textContent = "料金：-";
+    document.getElementById("menu").style.color = "black";
+}
+
+function updateTotal() {
+    document.getElementById("total").textContent = `合計：${totalPrice}円`;
+}
+
+function renderHistory() {
+    const list = document.getElementById("historyList");
+    list.innerHTML = "";
+
+    history.slice().reverse().forEach(h => {
+        const li = document.createElement("li");
+        li.textContent = `🎲${h.dice}｜${h.menu}｜${h.price}円`;
+        list.appendChild(li);
+    });
+}
+</script>
+
+</body>
+</html>
